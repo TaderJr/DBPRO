@@ -1001,8 +1001,8 @@ function createRocketSVG() {
 
               
 const proxies = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(API_ENDPOINT_BASE)}`,
-    `https://corsproxy.io/?${encodeURIComponent(API_ENDPOINT_BASE)}`,
+    `https://corsproxy.org/?${encodeURIComponent(API_ENDPOINT_BASE)}`,
+    `https://thingproxy.freeboard.io/fetch/${API_ENDPOINT_BASE}`,
     API_ENDPOINT_BASE
 ];
 
@@ -1012,11 +1012,13 @@ let lastError = null;
 for (const proxyUrl of proxies) {
     try {
         console.log('Trying:', proxyUrl);
-        response = await fetch(proxyUrl, {
-            headers: {
-                'Authorization': API_KEY
-            }
-        });
+        
+        // Don't send Authorization header through proxy - it gets blocked
+        const fetchOptions = proxyUrl === API_ENDPOINT_BASE 
+            ? { headers: { 'Authorization': API_KEY } }
+            : {}; // No headers for proxy requests
+        
+        response = await fetch(proxyUrl, fetchOptions);
 
         if (response.ok) {
             console.log('Success with:', proxyUrl);
@@ -1147,6 +1149,7 @@ window.autoRefreshInterval = setInterval(() => {
 
 
 </html>
+
 
 
 
