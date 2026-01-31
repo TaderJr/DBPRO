@@ -638,7 +638,8 @@
         endDate.setHours(23, 59, 59, 999);
         const COUNTDOWN_END = endDate.toISOString().slice(0, 19).replace('T', ' ');
 
-        const API_ENDPOINT_BASE = `https://api.diceblox.com/affiliates/${startDate.toISOString()}`;
+        const startDateStr = startDate.toISOString().split('T')[0];
+const API_ENDPOINT_BASE = `https://api.diceblox.com/affiliates/${AFFILIATE_ID}/leaderboard?start=${startDateStr}`;
 
         console.log('Start date:', startDate.toISOString());
         console.log('End date:', endDate.toISOString());
@@ -1000,38 +1001,15 @@ function createRocketSVG() {
                 console.log('Fetching from:', API_ENDPOINT_BASE);
 
               
-                const proxies = [
-                    `https://api.allorigins.win/raw?url=${encodeURIComponent(API_ENDPOINT_BASE)}`,
-                    `https://corsproxy.io/?${encodeURIComponent(API_ENDPOINT_BASE)}`,
-                    API_ENDPOINT_BASE // Direct attempt (will fail but good to try)
-                ];
+const response = await fetch(API_ENDPOINT_BASE, {
+    headers: {
+        'Authorization': `Bearer ${API_KEY}`
+    }
+});
 
-                let response = null;
-                let lastError = null;
-
-                for (const proxyUrl of proxies) {
-                    try {
-                        console.log('Trying:', proxyUrl);
-                        response = await fetch(proxyUrl, {
-                            headers: {
-                                'Authorization': API_KEY
-                            }
-                        });
-
-                        if (response.ok) {
-                            console.log('Success with:', proxyUrl);
-                            break;
-                        }
-                    } catch (e) {
-                        console.log('Failed with', proxyUrl, ':', e.message);
-                        lastError = e;
-                        continue;
-                    }
-                }
-
-                if (!response || !response.ok) {
-                    throw lastError || new Error('All proxy attempts failed');
-                }
+if (!response.ok) {
+    throw new Error(`API returned ${response.status}: ${response.statusText}`);
+}
 
                 const text = await response.text();
                 console.log('Raw response:', text.substring(0, 500));
@@ -1138,7 +1116,7 @@ window.autoRefreshInterval = setInterval(() => {
         fetchData();
         checkLiveStatus();
     }
-}, 120000);
+}, 300000); 
 
       
         fetchData();
@@ -1147,3 +1125,4 @@ window.autoRefreshInterval = setInterval(() => {
 
 
 </html>
+
