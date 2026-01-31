@@ -639,8 +639,7 @@
         const COUNTDOWN_END = endDate.toISOString().slice(0, 19).replace('T', ' ');
 
 const API_ENDPOINT_BASE = `https://dbpro.vip/api-proxy.php?date=${encodeURIComponent(startDate.toISOString())}`;
-// No proxies needed
-const response = await fetch(API_ENDPOINT_BASE);
+
 
         console.log('Start date:', startDate.toISOString());
         console.log('End date:', endDate.toISOString());
@@ -1149,6 +1148,7 @@ window.autoRefreshInterval = setInterval(() => {
 
 
 </html>
+
 
 
 
