@@ -1001,7 +1001,10 @@ function createRocketSVG() {
                 console.log('Fetching from:', API_ENDPOINT_BASE);
 
               
-const response = await fetch(API_ENDPOINT_BASE, {
+// Use CORS proxy
+const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(API_ENDPOINT_BASE)}`;
+
+const response = await fetch(proxyUrl, {
     headers: {
         'Authorization': `Bearer ${API_KEY}`
     }
@@ -1125,4 +1128,5 @@ window.autoRefreshInterval = setInterval(() => {
 
 
 </html>
+
 
