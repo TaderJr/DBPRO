@@ -638,8 +638,7 @@
         endDate.setHours(23, 59, 59, 999);
         const COUNTDOWN_END = endDate.toISOString().slice(0, 19).replace('T', ' ');
 
-        const startDateStr = startDate.toISOString().split('T')[0];
-const API_ENDPOINT_BASE = `https://api.diceblox.com/affiliates/${AFFILIATE_ID}/leaderboard?start=${startDateStr}`;
+        const API_ENDPOINT_BASE = `https://api.diceblox.com/affiliates/${startDate.toISOString()}`;
 
         console.log('Start date:', startDate.toISOString());
         console.log('End date:', endDate.toISOString());
@@ -1001,17 +1000,37 @@ function createRocketSVG() {
                 console.log('Fetching from:', API_ENDPOINT_BASE);
 
               
-// Use CORS proxy
-const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(API_ENDPOINT_BASE)}`;
+const proxies = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(API_ENDPOINT_BASE)}`,
+    `https://corsproxy.io/?${encodeURIComponent(API_ENDPOINT_BASE)}`,
+    API_ENDPOINT_BASE
+];
 
-const response = await fetch(proxyUrl, {
-    headers: {
-        'Authorization': `Bearer ${API_KEY}`
+let response = null;
+let lastError = null;
+
+for (const proxyUrl of proxies) {
+    try {
+        console.log('Trying:', proxyUrl);
+        response = await fetch(proxyUrl, {
+            headers: {
+                'Authorization': API_KEY
+            }
+        });
+
+        if (response.ok) {
+            console.log('Success with:', proxyUrl);
+            break;
+        }
+    } catch (e) {
+        console.log('Failed with', proxyUrl, ':', e.message);
+        lastError = e;
+        continue;
     }
-});
+}
 
-if (!response.ok) {
-    throw new Error(`API returned ${response.status}: ${response.statusText}`);
+if (!response || !response.ok) {
+    throw lastError || new Error('All proxy attempts failed');
 }
 
                 const text = await response.text();
@@ -1128,5 +1147,6 @@ window.autoRefreshInterval = setInterval(() => {
 
 
 </html>
+
 
 
