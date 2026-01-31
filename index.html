@@ -638,7 +638,7 @@
         endDate.setHours(23, 59, 59, 999);
         const COUNTDOWN_END = endDate.toISOString().slice(0, 19).replace('T', ' ');
 
-        const API_ENDPOINT_BASE = `https://api.diceblox.com/affiliates/${AFFILIATE_ID}/leaderboard`;
+const API_ENDPOINT_BASE = `https://api.diceblox.com/affiliates/${startDate.toISOString()}`;
 
         console.log('Start date:', startDate.toISOString());
         console.log('End date:', endDate.toISOString());
@@ -1001,8 +1001,8 @@ function createRocketSVG() {
 
               
 const proxies = [
-    `https://corsproxy.org/?${encodeURIComponent(API_ENDPOINT_BASE)}`,
-    `https://thingproxy.freeboard.io/fetch/${API_ENDPOINT_BASE}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(API_ENDPOINT_BASE)}`,
+    `https://corsproxy.io/?${encodeURIComponent(API_ENDPOINT_BASE)}`,
     API_ENDPOINT_BASE
 ];
 
@@ -1012,13 +1012,11 @@ let lastError = null;
 for (const proxyUrl of proxies) {
     try {
         console.log('Trying:', proxyUrl);
-        
-        // Don't send Authorization header through proxy - it gets blocked
-        const fetchOptions = proxyUrl === API_ENDPOINT_BASE 
-            ? { headers: { 'Authorization': API_KEY } }
-            : {}; // No headers for proxy requests
-        
-        response = await fetch(proxyUrl, fetchOptions);
+        response = await fetch(proxyUrl, {
+            headers: {
+                'Authorization': API_KEY
+            }
+        });
 
         if (response.ok) {
             console.log('Success with:', proxyUrl);
@@ -1149,6 +1147,7 @@ window.autoRefreshInterval = setInterval(() => {
 
 
 </html>
+
 
 
 
