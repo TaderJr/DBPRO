@@ -1,0 +1,28 @@
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  try {
+    const API_KEY = 'e34d9be48cfbbdebd4def62c96a50cf20f9e956d2b2be67cbb';
+    const startDate = new Date(Date.UTC(2026, 0, 29, 0, 0, 0, 0));
+    const API_ENDPOINT = `https://api.diceblox.com/affiliates/${startDate.toISOString()}`;
+
+    const response = await fetch(API_ENDPOINT, {
+      headers: {
+        'Authorization': API_KEY
+      }
+    });
+
+    const data = await response.text();
+    
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(200).send(data);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+}
