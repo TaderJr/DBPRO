@@ -888,112 +888,126 @@ function createRocketSVG() {
 
         scheduleNextCoinEmission();
 
-        let data = [
-    { rank: 1, player: 'undefined', wagered: 0, prize: '$150', photo: '' },
-    { rank: 2, player: 'undefined', wagered: 0, prize: '$70', photo: '' },
-    { rank: 3, player: 'undefined', wagered: 0, prize: '$50', photo: '' },
-    { rank: 4, player: 'undefined', wagered: 0, prize: '$20' },
-    { rank: 5, player: 'undefined', wagered: 0, prize: '$10' },
-    { rank: 6, player: 'undefined', wagered: 0, prize: 'NULL' },
-    { rank: 7, player: 'undefined', wagered: 0, prize: 'NULL' },
-    { rank: 8, player: 'undefined', wagered: 0, prize: 'NULL' },
-    { rank: 9, player: 'undefined', wagered: 0, prize: 'NULL' },
-    { rank: 10, player: 'undefined', wagered: 0, prize: 'NULL' }
-];
 
-        function formatNum(n) {
-            return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+let data = [];
+try {
+    const cached = localStorage.getItem('leaderboardData');
+    if (cached) {
+        data = JSON.parse(cached);
+        console.log('Loaded cached data from previous session');
+    } else {
+        throw new Error('No cache');
+    }
+} catch (e) {
+
+    data = [
+        { rank: 1, player: 'undefined', wagered: 0, prize: '$150', photo: '' },
+        { rank: 2, player: 'undefined', wagered: 0, prize: '$70', photo: '' },
+        { rank: 3, player: 'undefined', wagered: 0, prize: '$50', photo: '' },
+        { rank: 4, player: 'undefined', wagered: 0, prize: '$20' },
+        { rank: 5, player: 'undefined', wagered: 0, prize: '$10' },
+        { rank: 6, player: 'undefined', wagered: 0, prize: 'NULL' },
+        { rank: 7, player: 'undefined', wagered: 0, prize: 'NULL' },
+        { rank: 8, player: 'undefined', wagered: 0, prize: 'NULL' },
+        { rank: 9, player: 'undefined', wagered: 0, prize: 'NULL' },
+        { rank: 10, player: 'undefined', wagered: 0, prize: 'NULL' }
+    ];
+}
+
+function formatNum(n) {
+    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function animatePrizePool(target) {
+    const element = document.getElementById('prizePool');
+    if (!element) return;
+
+    const duration = 2000;
+    const start = 0;
+    const startTime = Date.now();
+
+    function update() {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+        const current = Math.floor(start + (target - start) * easeOut);
+
+        element.textContent = formatNum(current);
+
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        } else {
+            element.textContent = formatNum(target);
         }
+    }
 
-        function animatePrizePool(target) {
-            const element = document.getElementById('prizePool');
-            if (!element) return;
+    update();
+}
 
-            const duration = 2000;
-            const start = 0;
-            const startTime = Date.now();
+function updatePodium() {
+    const spots = [
+        { el: document.querySelectorAll('.podium-spot')[1], rank: 1, pfpId: 'podium-pfp-1' },
+        { el: document.querySelectorAll('.podium-spot')[0], rank: 2, pfpId: 'podium-pfp-2' },
+        { el: document.querySelectorAll('.podium-spot')[2], rank: 3, pfpId: 'podium-pfp-3' }
+    ];
 
-            function update() {
-                const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-
-                const easeOut = 1 - Math.pow(1 - progress, 3);
-                const current = Math.floor(start + (target - start) * easeOut);
-
-                element.textContent = formatNum(current);
-
-                if (progress < 1) {
-                    requestAnimationFrame(update);
-                } else {
-                    element.textContent = formatNum(target);
-                }
+    spots.forEach(spot => {
+        const d = data.find(x => x.rank === spot.rank);
+        if (d) {
+            const pfp = document.getElementById(spot.pfpId);
+            if (pfp && d.photo) {
+                pfp.src = d.photo;
+                pfp.style.display = 'block';
             }
-
-            update();
-        }
-
-        function updatePodium() {
-            const spots = [
-                { el: document.querySelectorAll('.podium-spot')[1], rank: 1, pfpId: 'podium-pfp-1' },
-                { el: document.querySelectorAll('.podium-spot')[0], rank: 2, pfpId: 'podium-pfp-2' },
-                { el: document.querySelectorAll('.podium-spot')[2], rank: 3, pfpId: 'podium-pfp-3' }
-            ];
-
-            spots.forEach(spot => {
-                const d = data.find(x => x.rank === spot.rank);
-                if (d) {
-                    const pfp = document.getElementById(spot.pfpId);
-                    if (pfp && d.photo) {
-                        pfp.src = d.photo;
-                        pfp.style.display = 'block';
-                    }
-                    spot.el.querySelector('.podium-player').textContent = d.player;
-                    const statsSpan = spot.el.querySelector('.podium-stats span');
-                    if (statsSpan) {
-                        statsSpan.textContent = `${formatNum(d.wagered)} wagered`;
-                    }
-                    spot.el.querySelectorAll('.podium-stats')[1].textContent = d.prize;
-                }
-            });
-        }
-        function render() {
-            const tbody = document.getElementById('tbody');
-            tbody.innerHTML = '';
-
-            data.slice(3).forEach((d, index) => {
-                const tr = document.createElement('tr');
-                tr.style.opacity = '0';
-                tr.style.transform = 'translateY(-10px)';
-
-                tr.innerHTML = `
-                    <td>${d.rank}</td>
-                    <td class="player-name">${d.player}</td>
-                    <td class="stat-val"><img src="Robuxx.png" style="width: 14px; height: 14px;"> ${formatNum(d.wagered)}</td>
-                    <td class="prize-val">${d.prize}</td>
-                `;
-
-                tbody.appendChild(tr);
-
-                setTimeout(() => {
-                    tr.style.transition = 'all 0.5s ease';
-                    tr.style.opacity = '1';
-                    tr.style.transform = 'translateY(0)';
-                }, index * 50);
-            });
-
-            updatePodium();
-        }
-
-        async function checkLiveStatus() {
-            if (!CHECK_LIVE_STATUS) return;
-
-            try {
-                const liveBadge = document.getElementById('liveBadge');
-               
-            } catch (error) {
-                console.error('Error checking live status:', error);
+            spot.el.querySelector('.podium-player').textContent = d.player;
+            const statsSpan = spot.el.querySelector('.podium-stats span');
+            if (statsSpan) {
+                statsSpan.textContent = `${formatNum(d.wagered)} wagered`;
             }
+            spot.el.querySelectorAll('.podium-stats')[1].textContent = d.prize;
         }
+    });
+}
+
+function render() {
+    const tbody = document.getElementById('tbody');
+    tbody.innerHTML = '';
+
+    data.slice(3).forEach((d, index) => {
+        const tr = document.createElement('tr');
+        tr.style.opacity = '0';
+        tr.style.transform = 'translateY(-10px)';
+
+        tr.innerHTML = `
+            <td>${d.rank}</td>
+            <td class="player-name">${d.player}</td>
+            <td class="stat-val"><img src="Robuxx.png" style="width: 14px; height: 14px;"> ${formatNum(d.wagered)}</td>
+            <td class="prize-val">${d.prize}</td>
+        `;
+
+        tbody.appendChild(tr);
+
+        setTimeout(() => {
+            tr.style.transition = 'all 0.5s ease';
+            tr.style.opacity = '1';
+            tr.style.transform = 'translateY(0)';
+        }, index * 50);
+    });
+
+    updatePodium();
+}
+
+async function checkLiveStatus() {
+    if (!CHECK_LIVE_STATUS) return;
+
+    try {
+        const liveBadge = document.getElementById('liveBadge');
+       
+    } catch (error) {
+        console.error('Error checking live status:', error);
+    }
+}
 
 async function fetchData() {
     try {
@@ -1019,6 +1033,12 @@ async function fetchData() {
             throw e;
         }
 
+
+        if (json.error && json.error.code === 429) {
+            console.warn('Rate limit hit, using cached data');
+            return;
+        }
+
         console.log('Parsed API Response:', json);
 
         const prizes = ['$150', '$70', '$50', '$20', '$10', 'NULL', 'NULL', 'NULL', 'NULL', 'NULL'];
@@ -1039,6 +1059,10 @@ async function fetchData() {
                     prize: prizes[index],
                     photo: entry.avatar || ''
                 }));
+
+                // Cache the new data
+                localStorage.setItem('leaderboardData', JSON.stringify(data));
+                console.log('Cached new leaderboard data');
             }
         }
 
@@ -1054,6 +1078,8 @@ async function fetchData() {
         render();
     } catch (error) {
         console.error('Error fetching leaderboard data:', error);
+        console.log('Using cached data from previous load');
+        // Don't update data, keep using the cached version
     }
 }
 
@@ -1081,3 +1107,4 @@ window.autoRefreshInterval = setInterval(() => {
 
 
 </html>
+
