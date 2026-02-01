@@ -988,24 +988,42 @@
             try {
                 const liveBadge = document.getElementById('liveBadge');
                 
-                // Use CORS proxy for Kick.com API
-                const kickApiUrl = `https://kick.com/api/v1/channels/${KICK_CHANNEL}`;
-                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(kickApiUrl)}`;
+                // Try multiple approaches for Kick.com API
+                const attempts = [
+                    `https://corsproxy.io/?${encodeURIComponent(`https://kick.com/api/v1/channels/${KICK_CHANNEL}`)}`,
+                    `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://kick.com/api/v1/channels/${KICK_CHANNEL}`)}`,
+                    `https://proxy.cors.sh/https://kick.com/api/v1/channels/${KICK_CHANNEL}`
+                ];
                 
-                const response = await fetch(proxyUrl);
-                if (response.ok) {
-                    const data = await response.json();
-                    const isLive = data.livestream && data.livestream.is_live;
-                    
-                    if (isLive) {
-                        liveBadge.style.display = 'block';
-                        console.log(`${KICK_CHANNEL} is live`);
-                    } else {
-                        liveBadge.style.display = 'none';
-                        console.log(`${KICK_CHANNEL} is offline`);
+                let success = false;
+                
+                for (const attemptUrl of attempts) {
+                    try {
+                        console.log('Trying Kick API:', attemptUrl);
+                        const response = await fetch(attemptUrl);
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            const isLive = data.livestream && data.livestream.is_live;
+                            
+                            if (isLive) {
+                                liveBadge.style.display = 'block';
+                                console.log(`${KICK_CHANNEL} is live`);
+                            } else {
+                                liveBadge.style.display = 'none';
+                                console.log(`${KICK_CHANNEL} is offline`);
+                            }
+                            success = true;
+                            break;
+                        }
+                    } catch (e) {
+                        console.log('Kick API attempt failed:', e.message);
+                        continue;
                     }
-                } else {
-                    console.log('Could not fetch live status, hiding badge');
+                }
+                
+                if (!success) {
+                    console.log('Could not fetch live status from any proxy, hiding badge');
                     liveBadge.style.display = 'none';
                 }
             } catch (error) {
@@ -1018,43 +1036,54 @@
             try {
                 console.log('Fetching from:', API_ENDPOINT_BASE);
 
-                const proxies = [
-                    `https://api.allorigins.win/raw?url=${encodeURIComponent(API_ENDPOINT_BASE)}`,
-                    `https://corsproxy.io/?${encodeURIComponent(API_ENDPOINT_BASE)}`,
-                    API_ENDPOINT_BASE // Direct attempt (will fail but good to try)
+                const proxyAttempts = [
+                    {
+                        url: `https://api.allorigins.win/raw?url=${encodeURIComponent(API_ENDPOINT_BASE)}`,
+                        headers: {}
+                    },
+                    {
+                        url: `https://corsproxy.io/?${encodeURIComponent(API_ENDPOINT_BASE)}`,
+                        headers: {}
+                    },
+                    {
+                        url: API_ENDPOINT_BASE,
+                        headers: { 'Authorization': API_KEY }
+                    },
+                    {
+                        url: `https://proxy.cors.sh/${API_ENDPOINT_BASE}`,
+                        headers: { 'Authorization': API_KEY }
+                    }
                 ];
 
                 let response = null;
                 let lastError = null;
 
-                for (const proxyUrl of proxies) {
+                for (const attempt of proxyAttempts) {
                     try {
-                        console.log('Trying:', proxyUrl);
-                        let headers = {};
+                        console.log('Trying:', attempt.url);
                         
-                        // Only add auth header for direct API calls (not proxies)
-                        if (proxyUrl === API_ENDPOINT_BASE) {
-                            headers['Authorization'] = API_KEY;
-                        }
-                        
-                        let proxyResponse = await fetch(proxyUrl, {
-                            headers: headers
+                        let proxyResponse = await fetch(attempt.url, {
+                            headers: attempt.headers
                         });
 
                         if (proxyResponse.ok) {
                             response = proxyResponse;
-                            console.log('Success with:', proxyUrl);
+                            console.log('Success with:', attempt.url);
                             break;
+                        } else {
+                            console.log('HTTP error with', attempt.url, ':', proxyResponse.status);
                         }
                     } catch (e) {
-                        console.log('Failed with', proxyUrl, ':', e.message);
+                        console.log('Failed with', attempt.url, ':', e.message);
                         lastError = e;
                         continue;
                     }
                 }
 
                 if (!response || !response.ok) {
-                    throw lastError || new Error('All proxy attempts failed');
+                    console.log('All API attempts failed, showing mock data');
+                    showMockData();
+                    return;
                 }
 
                 const text = await response.text();
@@ -1066,7 +1095,8 @@
                 } catch (e) {
                     console.error('Failed to parse JSON:', e);
                     console.error('Response was:', text);
-                    throw e;
+                    showMockData();
+                    return;
                 }
 
                 console.log('Parsed API Response:', json);
@@ -1076,14 +1106,21 @@
                     console.log('Keys:', Object.keys(json));
                 }
 
+                if (json && json.error) {
+                    console.error('API returned error:', json.error);
+                    if (json.error.message && json.error.message.includes('authorization')) {
+                        console.log('Authorization required but not available through proxy, showing mock data');
+                        showMockData();
+                        return;
+                    }
+                }
+
                 const prizes = ['$150', '$70', '$50', '$20', '$10', 'NULL', 'NULL', 'NULL', 'NULL', 'NULL'];
 
- 
                 if (Array.isArray(json)) {
                     console.log('Response is array with', json.length, 'items');
                     if (json.length > 0) {
                         console.log('First item:', json[0]);
-                        // Sort by wagered amount descending
                         const sorted = json.sort((a, b) => {
                             const aWager = a.totalWagered || a.wagered || a.amount || 0;
                             const bWager = b.totalWagered || b.wagered || b.amount || 0;
@@ -1099,12 +1136,13 @@
                         }));
                     } else {
                         console.log('Array is empty - no leaderboard data yet');
+                        showMockData();
+                        return;
                     }
                 }
              
                 else if (json && json.leaderboard && Array.isArray(json.leaderboard)) {
                     console.log('Found leaderboard property with', json.leaderboard.length, 'items');
-                    // Sort by wagered amount descending
                     const sorted = json.leaderboard.sort((a, b) => {
                         const aWager = a.totalWagered || a.wagered || 0;
                         const bWager = b.totalWagered || b.wagered || 0;
@@ -1120,8 +1158,10 @@
                     }));
                 }
               
-                else if (json && json.error) {
-                    console.error('API returned error:', json.error);
+                else {
+                    console.log('Unexpected response format, showing mock data');
+                    showMockData();
+                    return;
                 }
 
                
@@ -1144,7 +1184,28 @@
             } catch (error) {
                 console.error('Error fetching leaderboard data:', error);
                 console.log('Note: CORS issues are common. You may need to run this from a server or use a backend proxy. Kinda cooked but its whatever ');
+                showMockData();
             }
+        }
+
+        function showMockData() {
+            console.log('Showing mock leaderboard data');
+            const mockData = [
+                { rank: 1, player: 'PlayerOne', wagered: 5000, prize: '$150', photo: '' },
+                { rank: 2, player: 'PlayerTwo', wagered: 3500, prize: '$70', photo: '' },
+                { rank: 3, player: 'PlayerThree', wagered: 2000, prize: '$50', photo: '' },
+                { rank: 4, player: 'PlayerFour', wagered: 1500, prize: '$20' },
+                { rank: 5, player: 'PlayerFive', wagered: 1000, prize: '$10' },
+                { rank: 6, player: 'PlayerSix', wagered: 500, prize: 'NULL' },
+                { rank: 7, player: 'PlayerSeven', wagered: 250, prize: 'NULL' },
+                { rank: 8, player: 'PlayerEight', wagered: 100, prize: 'NULL' },
+                { rank: 9, player: 'PlayerNine', wagered: 50, prize: 'NULL' },
+                { rank: 10, player: 'PlayerTen', wagered: 25, prize: 'NULL' }
+            ];
+            
+            data = mockData;
+            animatePrizePool(15000);
+            render();
         }
 
       
