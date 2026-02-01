@@ -997,15 +997,14 @@ function createRocketSVG() {
 
 async function fetchData() {
     try {
-        // Use your Cloudflare Worker
-        const WORKER_URL = 'https://dbpro313-api.taderjr.workers.dev';
+        const WORKER_URL = 'https://dbpro.vercel.app/api/diceblox';
         
-        console.log('Fetching from Cloudflare Worker:', WORKER_URL);
+        console.log('Fetching from Vercel API:', WORKER_URL);
 
         const response = await fetch(WORKER_URL);
 
         if (!response.ok) {
-            throw new Error('Worker fetch failed');
+            throw new Error('API fetch failed');
         }
 
         const text = await response.text();
@@ -1028,35 +1027,19 @@ async function fetchData() {
             console.log('Response is array with', json.length, 'items');
             if (json.length > 0) {
                 const sorted = json.sort((a, b) => {
-                    const aWager = a.totalWagered || a.wagered || a.amount || 0;
-                    const bWager = b.totalWagered || b.wagered || b.amount || 0;
+                    const aWager = a.wagered || 0;
+                    const bWager = b.wagered || 0;
                     return bWager - aWager;
                 });
 
                 data = sorted.slice(0, 10).map((entry, index) => ({
                     rank: index + 1,
-                    player: entry.username || entry.name || entry.player || 'unknown',
-                    wagered: Math.round(entry.totalWagered || entry.wagered || entry.amount || 0),
+                    player: entry.username || 'unknown',
+                    wagered: Math.round(entry.wagered || 0),
                     prize: prizes[index],
-                    photo: entry.photo || entry.avatar || entry.profilePicture || ''
+                    photo: entry.avatar || ''
                 }));
             }
-        } else if (json && json.leaderboard && Array.isArray(json.leaderboard)) {
-            const sorted = json.leaderboard.sort((a, b) => {
-                const aWager = a.totalWagered || a.wagered || 0;
-                const bWager = b.totalWagered || b.wagered || 0;
-                return bWager - aWager;
-            });
-
-            data = sorted.slice(0, 10).map((entry, index) => ({
-                rank: index + 1,
-                player: entry.username || entry.name || entry.player || 'unknown',
-                wagered: Math.round(entry.totalWagered || entry.wagered || entry.amount || 0),
-                prize: prizes[index],
-                photo: entry.photo || entry.avatar || entry.profilePicture || ''
-            }));
-        } else if (json && json.error) {
-            console.error('API returned error:', json.error);
         }
 
         while (data.length < 10) {
@@ -1066,11 +1049,6 @@ async function fetchData() {
                 wagered: 0,
                 prize: prizes[data.length]
             });
-        }
-
-        if (json && json.prizePool !== undefined) {
-            const totalPrizePool = Math.round(json.prizePool);
-            animatePrizePool(totalPrizePool);
         }
 
         render();
@@ -1100,5 +1078,6 @@ window.autoRefreshInterval = setInterval(() => {
         fetchData();
     </script>
 </body>
+
 
 </html>
