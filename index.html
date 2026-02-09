@@ -628,7 +628,7 @@
         const CHECK_LIVE_STATUS = true;
         const KICK_CHANNEL = 'dbpro313';
 
-       const startDate = new Date(2026, 1, 9, 0, 0, 0, 0); // Feb 9, 2026 midnight
+       const startDate = new Date(2026, 1, 8, 0, 0, 0, 0); // Feb 9, 2026 midnight
 
 
 
@@ -644,6 +644,15 @@
         console.log('End date:', endDate.toISOString());
         console.log('API endpoint:', API_ENDPOINT_BASE);
 
+        // Check if we're in a new competition period
+const COMPETITION_ID = `${startDate.toISOString().split('T')[0]}_to_${endDate.toISOString().split('T')[0]}`;
+const cachedCompetitionId = localStorage.getItem('competitionId');
+
+if (cachedCompetitionId !== COMPETITION_ID) {
+    console.log('New competition period detected - clearing cache');
+    localStorage.removeItem('leaderboardData');
+    localStorage.setItem('competitionId', COMPETITION_ID);
+}
 
 function updateCountdown() {
     const now = new Date().getTime();
@@ -892,11 +901,13 @@ function createRocketSVG() {
 let data = [];
 try {
     const cached = localStorage.getItem('leaderboardData');
-    if (cached) {
+    const cachedCompId = localStorage.getItem('competitionId');
+    
+    if (cached && cachedCompId === COMPETITION_ID) {
         data = JSON.parse(cached);
-        console.log('Loaded cached data from previous session');
+        console.log('Loaded cached data from current competition');
     } else {
-        throw new Error('No cache');
+        throw new Error('No valid cache for current competition');
     }
 } catch (e) {
 
@@ -1107,5 +1118,6 @@ window.autoRefreshInterval = setInterval(() => {
 
 
 </html>
+
 
 
