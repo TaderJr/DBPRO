@@ -638,7 +638,7 @@
         endDate.setHours(23, 59, 59, 999);
         const COUNTDOWN_END = endDate.toISOString().slice(0, 19).replace('T', ' ');
 
-        const API_ENDPOINT_BASE = `https://api.diceblox.com/affiliates/${startDate.toISOString()}`;
+        const API_ENDPOINT_BASE = `https://api.diceblox.com/affiliates/${AFFILIATE_ID}/${startDate.toISOString()}/${endDate.toISOString()}`;
 
         console.log('Start date:', startDate.toISOString());
         console.log('End date:', endDate.toISOString());
@@ -1118,6 +1118,7 @@ window.autoRefreshInterval = setInterval(() => {
 
 
 </html>
+
 
 
 
